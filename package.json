@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
+    "dev": "NODE_ENV=development ts-node src/index.ts",
     "build": "tsc",
     "watch": "tsc -w"
   },
@@ -14,10 +14,13 @@
   "keywords": [],
   "dependencies": {
     "dotenv": "^16.4.7",
+    "node-fetch": "^2.7.0",
+    "shamir-secret-sharing": "^0.0.4",
     "telegraf": "^4.16.3"
   },
   "devDependencies": {
     "@types/node": "^22.13.11",
+    "@types/node-fetch": "^2.6.12",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
   }

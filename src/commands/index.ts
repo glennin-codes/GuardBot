@@ -1,11 +1,13 @@
 import { Telegraf } from 'telegraf';
 import { BotContext, Command } from '../types';
 import { startCommand } from './start';
+import { termsCommand } from './terms';
 import logger from '../utils/logger';
 
 // Array of all commands
 export const commands: Command[] = [
   startCommand,
+  termsCommand,
   // Add more commands here
 ];
 

@@ -47,6 +47,8 @@ export class Logger {
   error(message: string, data?: any): void {
     this.log(LogLevel.ERROR, message, data);
   }
-} 
+}
 
-export default new Logger('Guard');
+// Create and export a default logger instance
+const logger = new Logger('TelegramBot');
+export default logger;
