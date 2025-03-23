@@ -2,7 +2,19 @@
   {
     "telegramId": 7013102994,
     "username": "MarieStacy",
-    "shards": {},
-    "totalShardsHeld": 0
+    "shards": {
+      "044ee6da-edef-43d1-85a2-8a8f2094f38a": "J7kkbzv96bk="
+    },
+    "totalShardsHeld": 1,
+    "lastAssignmentDate": "2025-03-23T08:00:48.262Z"
+  },
+  {
+    "telegramId": 1479800864,
+    "username": "glennyie",
+    "shards": {
+      "044ee6da-edef-43d1-85a2-8a8f2094f38a": "2YTMAgEihxU="
+    },
+    "totalShardsHeld": 1,
+    "lastAssignmentDate": "2025-03-23T08:00:48.872Z"
   }
 ]
