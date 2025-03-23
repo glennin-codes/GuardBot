@@ -13,10 +13,12 @@
   "license": "ISC",
   "keywords": [],
   "dependencies": {
+    "@types/uuid": "^10.0.0",
     "dotenv": "^16.4.7",
     "node-fetch": "^2.7.0",
     "shamir-secret-sharing": "^0.0.4",
-    "telegraf": "^4.16.3"
+    "telegraf": "^4.16.3",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.11",

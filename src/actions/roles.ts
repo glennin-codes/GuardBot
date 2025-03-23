@@ -2,6 +2,13 @@ import { BotContext } from '../types';
 import logger from '../utils/logger';
 import { Markup, Context } from 'telegraf';
 import { splitPrivateKey } from '../utils/secretSharing';
+import { 
+  registerCustodian, 
+  saveSecret, 
+  distributeShards,
+  getSecretCustodians,
+  calculateOptimalShareConfig 
+} from '../services/shardDistribution';
 import fs from 'fs';
 import path from 'path';
 
@@ -108,13 +115,24 @@ export const handleAcceptProviderTerms = async (ctx: BotContext): Promise<void> 
   try {
     if (!ctx.from?.id) return;
 
-    // Set state to await secret input
-    const userState = userStates.get(ctx.from.id) || { role: 'provider' };
-    userState.awaitingInput = 'secret';
+    // Calculate optimal shares based on available custodians
+    const { totalShares, threshold, reason } = calculateOptimalShareConfig(ctx.from.id);
+
+    // Set state with pre-calculated values
+    const userState = {
+      role: 'provider' as const,
+      awaitingInput: 'secret' as const,
+      totalShares,
+      threshold
+    };
     userStates.set(ctx.from.id, userState);
 
     await ctx.reply(
-      '🔐 Please enter your secret that you want to split (send it as a message).\n' +
+      '🔐 Please enter your secret that you want to split (send it as a message).\n\n' +
+      'Based on available custodians, your secret will be:\n' +
+      `- Split into ${totalShares} shares\n` +
+      `- Require ${threshold} shares to reconstruct\n` +
+      `(${reason})\n\n` +
       'Warning: Make sure you are in a secure environment when sharing your secret.'
     );
   } catch (error) {
@@ -126,6 +144,28 @@ export const handleAcceptProviderTerms = async (ctx: BotContext): Promise<void> 
 export const handleAcceptCustodianTerms = async (ctx: BotContext): Promise<void> => {
   try {
     if (!ctx.from?.id) return;
+    
+    // Register the user as a custodian
+    const result = await registerCustodian(ctx.from.id, ctx.from.username);
+    
+    if (!result.success) {
+      if (result.message === 'You are already registered as a custodian.') {
+        await ctx.reply(
+          '📝 You are already registered as a shard custodian.\n\n' +
+          'Current Status:\n' +
+          '- Ready to receive and protect shards\n' +
+          '- Maintain high availability\n' +
+          '- Report any security concerns\n\n' +
+          'You will be notified when you are assigned new shards to protect.'
+        );
+      } else {
+        await ctx.reply(
+          '❌ Registration failed: ' + result.message + '\n' +
+          'Please try again later or contact support.'
+        );
+      }
+      return;
+    }
     
     await ctx.reply(
       '💎 Thank you for becoming a shard custodian!\n\n' +
@@ -164,90 +204,59 @@ export const handleTextMessage = async (ctx: BotContext): Promise<void> => {
     if (!ctx.from?.id || !ctx.message || !('text' in ctx.message)) return;
 
     const userState = userStates.get(ctx.from.id);
-    if (!userState) return;
+    if (!userState || !userState.awaitingInput) return;
 
     const text = ctx.message.text;
 
     switch (userState.awaitingInput) {
       case 'secret':
-        userState.secret = text;
-        userState.awaitingInput = 'totalShares';
-        userStates.set(ctx.from.id, userState);
-        
-        await ctx.reply(
-          'How many total shares should we create? (minimum 2, maximum 255)\n' +
-          'Enter a number between 2 and 255.',
-          Markup.forceReply()
-        );
-        break;
-
-      case 'totalShares':
-        const totalShares = parseInt(text);
-        if (isNaN(totalShares) || totalShares < 2 || totalShares > 255) {
-          await ctx.reply('Please enter a valid number between 2 and 255.');
-          return;
-        }
-
-        userState.totalShares = totalShares;
-        userState.awaitingInput = 'threshold';
-        userStates.set(ctx.from.id, userState);
-
-        await ctx.reply(
-          'How many shares should be required to reconstruct the secret? (threshold)\n' +
-          `Enter a number between 2 and ${totalShares}.`,
-          Markup.forceReply()
-        );
-        break;
-
-      case 'threshold':
-        const threshold = parseInt(text);
-        if (!userState.totalShares || !userState.secret) {
+        if (!userState.totalShares || !userState.threshold) {
           await ctx.reply('Something went wrong. Please start over with /start.');
           return;
         }
 
-        if (isNaN(threshold) || threshold < 2 || threshold > userState.totalShares) {
-          await ctx.reply(`Please enter a valid number between 2 and ${userState.totalShares}.`);
-          return;
-        }
-
-        // Split the secret
-        const shares = await splitPrivateKey(userState.secret, {
+        // Split the secret using pre-calculated values
+        const shares = await splitPrivateKey(text, {
           totalShares: userState.totalShares,
-          threshold: threshold
+          threshold: userState.threshold
         });
 
-        // Save shares to JSON file
-        const shardsData = {
-          telegramId: ctx.from.id,
-          username: ctx.from.username,
-          totalShares: userState.totalShares,
-          threshold: threshold,
-          shares: shares,
-          timestamp: new Date().toISOString()
-        };
+        // Save the secret and get its ID
+        const secretId = await saveSecret(
+          ctx.from.id,
+          ctx.from.username,
+          userState.totalShares,
+          userState.threshold,
+          shares
+        );
 
-        const filePath = path.join(__dirname, '..', 'shards.json');
-        let existingData: any[] = [];
+        // Get custodian information
+        const custodians = getSecretCustodians(secretId);
         
-        if (fs.existsSync(filePath)) {
-          const fileContent = fs.readFileSync(filePath, 'utf-8');
-          existingData = JSON.parse(fileContent);
+        if (custodians.length < userState.totalShares) {
+          await ctx.reply(
+            '⚠️ Your secret has been split, but we could not distribute all shards immediately.\n' +
+            'This could be because there are not enough custodians available.\n' +
+            'Your secret is safely stored and will be distributed as soon as more custodians join.\n\n' +
+            `Secret ID: ${secretId}\n` +
+            'Please save this ID for future reference.'
+          );
+        } else {
+          await ctx.reply(
+            '✅ Your secret has been successfully split and distributed!\n\n' +
+            `Secret ID: ${secretId}\n` +
+            `Total Shares: ${userState.totalShares}\n` +
+            `Threshold: ${userState.threshold}\n\n` +
+            'Shard Distribution:\n' +
+            custodians.map(c => 
+              `Shard ${c.shardIndex + 1}: Custodian @${c.username || 'Anonymous'}`
+            ).join('\n') +
+            '\n\nPlease save your Secret ID for future reference.'
+          );
         }
-        
-        existingData.push(shardsData);
-        fs.writeFileSync(filePath, JSON.stringify(existingData, null, 2));
 
         // Clear user state
         userStates.delete(ctx.from.id);
-
-        await ctx.reply(
-          '✅ Your secret has been successfully split into shards!\n\n' +
-          `Total Shares: ${userState.totalShares}\n` +
-          `Threshold: ${threshold}\n\n` +
-          'The shards will be distributed to trusted custodians.\n' +
-          'You will be notified when the distribution is complete.'
-        );
         break;
     }
   } catch (error) {

@@ -18,7 +18,8 @@ const uint8ArrayToBase64 = (arr: Uint8Array): string => {
 };
 
 const base64ToUint8Array = (base64: string): Uint8Array => {
-  return Buffer.from(base64, 'base64');
+  const buffer = Buffer.from(base64, 'base64');
+  return new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.length);
 };
 
 export const splitPrivateKey = async (
@@ -45,6 +46,7 @@ export const splitPrivateKey = async (
     const secretBytes = stringToUint8Array(secret);
     const shares = await split(secretBytes, totalShares, threshold);
 
+    // Convert shares to base64 for storage
     return shares.map((share) => uint8ArrayToBase64(share));
   } catch (error) {
     console.error("Error in splitPrivateKey:", error);
@@ -71,10 +73,17 @@ export const combineShares = async (shares: string[]): Promise<string> => {
       throw new Error("At least 2 valid shares are required to reconstruct the secret");
     }
 
-    const parsedShares = validShareStrings.map(share => share.trim());
-    const sharesForReconstruction = parsedShares.map(share => base64ToUint8Array(share));
-    const reconstructedBytes = await combine(sharesForReconstruction);
+    console.log(`Attempting to reconstruct with ${validShareStrings.length} shares`);
 
+    // Convert base64 shares back to Uint8Array using the new implementation
+    const sharesForReconstruction = validShareStrings.map(share => base64ToUint8Array(share.trim()));
+
+    console.log(
+      "Shares prepared for reconstruction:",
+      sharesForReconstruction.map(share => share.length)
+    );
+
+    const reconstructedBytes = await combine(sharesForReconstruction);
     return uint8ArrayToString(reconstructedBytes);
   } catch (error) {
     console.error("Error in combineShares:", error);

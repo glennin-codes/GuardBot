@@ -3,31 +3,17 @@
     "telegramId": 1479800864,
     "username": "glennyie",
     "totalShares": 8,
-    "threshold": 4,
+    "threshold": 5,
     "shares": [
-      "zQKCes37f1WkHLq1/Q==",
-      "B6pqwsZ8DbbN7CtR+w==",
-      "5JPv2Q5Hb++bj5VGeA==",
-      "uRSi3ID2VKuLzGWAdw==",
-      "GUDEKnISnoKcXy6v4Q==",
-      "VzO3zc/UJ4QZY7AvEw==",
-      "BBrnARoxhVinqwVr5g==",
-      "a02In2pB96eNbuujiw=="
+      "fBOPol4MVpBv",
+      "kAOlniyJUoqc",
+      "lS8nDQiFElUp",
+      "Y9hj4BsxX61G",
+      "4KqxNtr4uq8l",
+      "sastBBE9wDFk",
+      "CylB9kL5h/Ij",
+      "p0a9Knd6SlBO"
     ],
-    "timestamp": "2025-03-21T23:24:49.801Z"
-  },
-  {
-    "telegramId": 1479800864,
-    "username": "glennyie",
-    "totalShares": 5,
-    "threshold": 3,
-    "shares": [
-      "IkehDnUDjo23jtY8+QM=",
-      "Zvpptb6DsV1Rm5hrG6U=",
-      "3o1UcXp+oHcnr4J2iMo=",
-      "NCERJfcu8WZPhdDGrA8=",
-      "4CN/PhWASKlRPMrVrhc="
-    ],
-    "timestamp": "2025-03-21T23:27:06.116Z"
+    "timestamp": "2025-03-22T07:28:49.545Z"
   }
 ]
